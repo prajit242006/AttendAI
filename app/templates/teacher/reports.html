@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block page_title %}Reports{% endblock %}
+{% block page_subtitle %}Download attendance data as CSV (opens directly in Excel){% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-6">
+    <section class="panel h-100">
+      <header class="panel-head"><h2>Daily attendance</h2></header>
+      <p class="help-text">Every record for one date, across all subjects.</p>
+      <form method="get" action="{{ url_for('teacher.report_download', report_type='daily') }}" class="filter-bar">
+        <input class="form-control" type="date" name="date" value="{{ today }}">
+        <button class="btn btn-brand" type="submit"><i class="bi bi-download"></i> Download</button>
+      </form>
+    </section>
+  </div>
+
+  <div class="col-lg-6">
+    <section class="panel h-100">
+      <header class="panel-head"><h2>Subject attendance</h2></header>
+      <p class="help-text">Every session recorded for one subject.</p>
+      <form method="get" action="{{ url_for('teacher.report_download', report_type='subject') }}" class="filter-bar">
+        <select class="form-select" name="subject_id" required>
+          <option value="">Choose a subject…</option>
+          {% for subject in subjects %}<option value="{{ subject.id }}">{{ subject.code }} — {{ subject.name }}</option>{% endfor %}
+        </select>
+        <button class="btn btn-brand" type="submit"><i class="bi bi-download"></i> Download</button>
+      </form>
+    </section>
+  </div>
+
+  <div class="col-lg-6">
+    <section class="panel h-100">
+      <header class="panel-head"><h2>Student attendance</h2></header>
+      <p class="help-text">The full attendance history of one student.</p>
+      <form method="get" action="{{ url_for('teacher.report_download', report_type='student') }}" class="filter-bar">
+        <select class="form-select" name="student_id" required>
+          <option value="">Choose a student…</option>
+          {% for student in students %}<option value="{{ student.id }}">{{ student.register_number }} — {{ student.name }}</option>{% endfor %}
+        </select>
+        <button class="btn btn-brand" type="submit"><i class="bi bi-download"></i> Download</button>
+      </form>
+    </section>
+  </div>
+
+  <div class="col-lg-6">
+    <section class="panel h-100">
+      <header class="panel-head"><h2>Shortage report</h2></header>
+      <p class="help-text">Students below the required percentage, worst first.</p>
+      <form method="get" action="{{ url_for('teacher.report_download', report_type='shortage') }}" class="filter-bar">
+        <input class="form-control" type="number" name="minimum" min="1" max="100" value="{{ minimum|int }}">
+        <button class="btn btn-brand" type="submit"><i class="bi bi-download"></i> Download</button>
+      </form>
+    </section>
+  </div>
+</div>
+{% endblock %}

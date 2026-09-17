@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Students{% endblock %}
+{% block page_title %}Students{% endblock %}
+{% block page_subtitle %}{{ students|length }} student{{ '' if students|length == 1 else 's' }} on record{% endblock %}
+
+{% block topbar_actions %}
+  <a class="btn btn-brand" href="{{ url_for('teacher.student_new') }}"><i class="bi bi-plus-lg"></i> Add student</a>
+{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <form class="filter-bar" method="get" action="{{ url_for('teacher.students') }}">
+    <div class="input-group">
+      <span class="input-group-text"><i class="bi bi-search"></i></span>
+      <input class="form-control" name="q" value="{{ search }}" placeholder="Search by name, register number or email">
+    </div>
+    <select class="form-select" name="department">
+      <option value="">All departments</option>
+      {% for dept in departments %}
+        <option value="{{ dept }}" {% if dept == department %}selected{% endif %}>{{ dept }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-brand" type="submit">Search</button>
+    <a class="btn btn-light" href="{{ url_for('teacher.students') }}">Reset</a>
+  </form>
+
+  {% if students %}
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>Register no.</th><th>Name</th><th>Department</th><th>Year / Sec</th>
+          <th>Username</th><th>Face</th><th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for student in students %}
+        <tr>
+          <td><span class="reg-chip">{{ student.register_number }}</span></td>
+          <td>
+            <strong>{{ student.name }}</strong>
+            {% if student.email %}<br><small class="text-muted">{{ student.email }}</small>{% endif %}
+          </td>
+          <td>{{ student.department }}</td>
+          <td>Year {{ student.year }}{% if student.section %} &middot; {{ student.section }}{% endif %}</td>
+          <td><code>{{ student.username }}</code></td>
+          <td>
+            {% if student.face_registered %}
+              <span class="badge bg-success"><i class="bi bi-check2"></i> Registered</span>
+            {% else %}
+              <span class="badge bg-secondary">Not registered</span>
+            {% endif %}
+          </td>
+          <td class="text-end text-nowrap">
+            <a class="btn btn-sm btn-outline-brand" href="{{ url_for('teacher.face_registration', student_id=student.id) }}" title="Register face">
+              <i class="bi bi-person-bounding-box"></i>
+            </a>
+            <a class="btn btn-sm btn-light" href="{{ url_for('teacher.student_edit', student_id=student.id) }}" title="Edit">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="modal"
+                    data-bs-target="#deleteStudent{{ student.id }}" title="Delete">
+              <i class="bi bi-trash"></i>
+            </button>
+
+            <div class="modal fade" id="deleteStudent{{ student.id }}" tabindex="-1" aria-hidden="true">
+              <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content text-start">
+                  <div class="modal-header">
+                    <h5 class="modal-title">Remove {{ student.name }}?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    This deletes the login, the attendance records and the stored face samples
+                    for {{ student.register_number }}. It cannot be undone.
+                  </div>
+                  <div class="modal-footer">
+                    <button class="btn btn-light" data-bs-dismiss="modal" type="button">Keep student</button>
+                    <form method="post" action="{{ url_for('teacher.student_delete', student_id=student.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button class="btn btn-danger" type="submit">Delete student</button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <p class="empty-note">No students match this search. Add a student to get started.</p>
+  {% endif %}
+</section>
+{% endblock %}

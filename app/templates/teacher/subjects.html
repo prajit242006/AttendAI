@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Subjects{% endblock %}
+{% block page_title %}Subjects{% endblock %}
+{% block page_subtitle %}{{ subjects|length }} subject{{ '' if subjects|length == 1 else 's' }} configured{% endblock %}
+
+{% block topbar_actions %}
+  <a class="btn btn-brand" href="{{ url_for('teacher.subject_new') }}"><i class="bi bi-plus-lg"></i> Add subject</a>
+{% endblock %}
+
+{% block content %}
+<section class="panel">
+  {% if subjects %}
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr><th>Code</th><th>Name</th><th>Department</th><th>Year</th><th>Semester</th><th>Students</th><th class="text-end">Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for subject in subjects %}
+        <tr>
+          <td><span class="reg-chip">{{ subject.code }}</span></td>
+          <td><strong>{{ subject.name }}</strong></td>
+          <td>{{ subject.department }}</td>
+          <td>{{ subject.year }}</td>
+          <td>{{ subject.semester }}</td>
+          <td><span class="badge bg-light text-dark">{{ subject.students|length }} enrolled</span></td>
+          <td class="text-end text-nowrap">
+            <a class="btn btn-sm btn-light" href="{{ url_for('teacher.subject_edit', subject_id=subject.id) }}"><i class="bi bi-pencil"></i></a>
+            <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#deleteSubject{{ subject.id }}">
+              <i class="bi bi-trash"></i>
+            </button>
+            <div class="modal fade" id="deleteSubject{{ subject.id }}" tabindex="-1" aria-hidden="true">
+              <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content text-start">
+                  <div class="modal-header">
+                    <h5 class="modal-title">Remove {{ subject.code }}?</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                  </div>
+                  <div class="modal-body">Every session and attendance record for this subject is deleted too.</div>
+                  <div class="modal-footer">
+                    <button class="btn btn-light" data-bs-dismiss="modal" type="button">Keep subject</button>
+                    <form method="post" action="{{ url_for('teacher.subject_delete', subject_id=subject.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <button class="btn btn-danger" type="submit">Delete subject</button>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <p class="empty-note">No subjects yet. Add one so attendance sessions have something to record against.</p>
+  {% endif %}
+</section>
+{% endblock %}

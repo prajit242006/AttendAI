@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Attendance history{% endblock %}
+{% block page_title %}Attendance history{% endblock %}
+{% block page_subtitle %}{{ records|length }} record{{ '' if records|length == 1 else 's' }} shown (newest first, max 500){% endblock %}
+
+{% block content %}
+<section class="panel">
+  <form class="filter-bar filter-bar-wide" method="get" action="{{ url_for('teacher.attendance_history') }}">
+    <input class="form-control" type="date" name="date" value="{{ filters.date }}">
+    <select class="form-select" name="student_id">
+      <option value="">All students</option>
+      {% for student in students %}
+        <option value="{{ student.id }}" {% if filters.student_id == student.id %}selected{% endif %}>
+          {{ student.register_number }} — {{ student.name }}
+        </option>
+      {% endfor %}
+    </select>
+    <select class="form-select" name="subject_id">
+      <option value="">All subjects</option>
+      {% for subject in subjects %}
+        <option value="{{ subject.id }}" {% if filters.subject_id == subject.id %}selected{% endif %}>{{ subject.code }}</option>
+      {% endfor %}
+    </select>
+    <select class="form-select" name="department">
+      <option value="">All departments</option>
+      {% for dept in departments %}
+        <option value="{{ dept }}" {% if filters.department == dept %}selected{% endif %}>{{ dept }}</option>
+      {% endfor %}
+    </select>
+    <select class="form-select" name="status">
+      <option value="">All statuses</option>
+      {% for status in statuses %}
+        <option value="{{ status }}" {% if filters.status == status %}selected{% endif %}>{{ status }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-brand" type="submit">Filter</button>
+    <a class="btn btn-light" href="{{ url_for('teacher.attendance_history') }}">Reset</a>
+  </form>
+
+  {% if records %}
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>Register no.</th><th>Student</th><th>Subject</th><th>Date</th>
+          <th>First</th><th>Last</th><th>Presence %</th><th>Status</th><th class="text-end">Correct</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for record in records %}
+        <tr>
+          <td><span class="reg-chip">{{ record.student.register_number }}</span></td>
+          <td>{{ record.student.name }}{% if record.manually_modified %} <i class="bi bi-pencil-square text-warning" title="Manually corrected"></i>{% endif %}</td>
+          <td>{{ record.subject.code }}</td>
+          <td>{{ record.session_date.strftime('%d %b %Y') }}</td>
+          <td>{{ record.first_detection_time.strftime('%I:%M %p') if record.first_detection_time else '—' }}</td>
+          <td>{{ record.last_detection_time.strftime('%I:%M %p') if record.last_detection_time else '—' }}</td>
+          <td>{{ record.presence_percentage }}%</td>
+          <td>
+            <span class="badge bg-{{ 'success' if record.status == 'PRESENT' else 'warning' if record.status == 'LATE' else 'danger' if record.status == 'ABSENT' else 'secondary' }}">
+              {{ record.status }}
+            </span>
+          </td>
+          <td class="text-end">
+            <form method="post" action="{{ url_for('teacher.attendance_correct', record_id=record.id) }}" class="d-flex gap-1 justify-content-end">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <select class="form-select form-select-sm w-auto" name="status">
+                {% for status in statuses %}
+                  <option value="{{ status }}" {% if record.status == status %}selected{% endif %}>{{ status }}</option>
+                {% endfor %}
+              </select>
+              <button class="btn btn-sm btn-outline-brand" type="submit">Save</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <p class="empty-note">No attendance records match these filters.</p>
+  {% endif %}
+</section>
+{% endblock %}

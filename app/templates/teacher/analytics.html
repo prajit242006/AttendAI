@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Analytics{% endblock %}
+{% block page_title %}Analytics{% endblock %}
+{% block page_subtitle %}Every number below is calculated from the attendance records{% endblock %}
+
+{% block content %}
+<div class="stat-grid">
+  {% set cards = [
+    ('Overall attendance', overall|string ~ '%', 'bi-pie-chart', 'indigo'),
+    ('Present today', counts.present, 'bi-check2-circle', 'green'),
+    ('Absent today', counts.absent, 'bi-x-circle', 'red'),
+    ('Late today', counts.late, 'bi-alarm', 'amber'),
+    ('Below ' ~ minimum|int ~ '%', low_students|length, 'bi-exclamation-triangle', 'red')
+  ] %}
+  {% for label, value, icon, tone in cards %}
+    <article class="stat-card tone-{{ tone }}">
+      <span class="stat-icon"><i class="bi {{ icon }}"></i></span>
+      <p class="stat-value">{{ value }}</p>
+      <p class="stat-label">{{ label }}</p>
+    </article>
+  {% endfor %}
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-lg-7">
+    <section class="panel h-100">
+      <header class="panel-head"><h2>Daily attendance trend</h2></header>
+      <canvas id="trendChart" height="160"
+              data-labels='{{ trend.labels|tojson }}'
+              data-present='{{ trend.present|tojson }}'
+              data-late='{{ trend.late|tojson }}'
+              data-absent='{{ trend.absent|tojson }}'></canvas>
+    </section>
+  </div>
+  <div class="col-lg-5">
+    <section class="panel h-100">
+      <header class="panel-head"><h2>Status split</h2></header>
+      {% if status_distribution.values|sum %}
+        <canvas id="statusChart" height="220"
+                data-labels='{{ status_distribution.labels|tojson }}'
+                data-values='{{ status_distribution.values|tojson }}'></canvas>
+      {% else %}
+        <p class="empty-note">No attendance recorded yet.</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-lg-7">
+    <section class="panel h-100">
+      <header class="panel-head"><h2>Subject-wise attendance</h2></header>
+      {% if subject_wise.labels %}
+        <canvas id="subjectChart" height="200"
+                data-labels='{{ subject_wise.labels|tojson }}'
+                data-values='{{ subject_wise.values|tojson }}'></canvas>
+        <div class="table-responsive mt-3">
+          <table class="table table-sm mb-0">
+            <thead><tr><th>Code</th><th>Subject</th><th>Attended</th><th>Held</th><th>%</th></tr></thead>
+            <tbody>
+              {% for row in subject_wise.details %}
+                <tr>
+                  <td>{{ row.code }}</td><td>{{ row.name }}</td>
+                  <td>{{ row.attended }}</td><td>{{ row.total }}</td>
+                  <td class="{{ 'text-danger fw-semibold' if row.percentage < minimum else '' }}">{{ row.percentage }}%</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="empty-note">Add subjects to see this breakdown.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="col-lg-5">
+    <section class="panel">
+      <header class="panel-head"><h2>Highest attendance</h2></header>
+      {% if top_students %}
+        <ul class="rank-list">
+          {% for row in top_students %}
+            <li>
+              <span class="rank-pos">{{ loop.index }}</span>
+              <div><strong>{{ row.student.name }}</strong><small>{{ row.student.register_number }}</small></div>
+              <span class="rank-value">{{ row.percentage }}%</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="empty-note">No records yet.</p>
+      {% endif %}
+    </section>
+
+    <section class="panel mt-3">
+      <header class="panel-head">
+        <h2>Below {{ minimum|int }}%</h2>
+        <a class="link-more" href="{{ url_for('teacher.low_attendance') }}">Details</a>
+      </header>
+      {% if low_students %}
+        <ul class="rank-list">
+          {% for row in low_students[:5] %}
+            <li>
+              <span class="rank-pos danger">!</span>
+              <div><strong>{{ row.student.name }}</strong><small>{{ row.student.register_number }}</small></div>
+              <span class="rank-value text-danger">{{ row.percentage }}%</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="empty-note">Nobody is short of attendance.</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>AttendAI.charts.analytics();</script>
+{% endblock %}

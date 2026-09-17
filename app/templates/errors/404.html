@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Page not found{% endblock %}
+{% block page_title %}404 — Page not found{% endblock %}
+{% block content %}
+<section class="panel error-panel">
+  <i class="bi bi-compass"></i>
+  <h2>That page does not exist</h2>
+  <p>The link may be old, or the student, subject or session was deleted.</p>
+  <a class="btn btn-brand" href="{{ url_for('auth.index') }}">Back to my dashboard</a>
+</section>
+{% endblock %}

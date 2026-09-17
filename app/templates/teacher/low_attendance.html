@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Low attendance{% endblock %}
+{% block page_title %}Low attendance{% endblock %}
+{% block page_subtitle %}Students below the required {{ minimum|int }}%{% endblock %}
+
+{% block topbar_actions %}
+  <a class="btn btn-outline-brand" href="{{ url_for('teacher.report_download', report_type='shortage', minimum=minimum) }}">
+    <i class="bi bi-download"></i> Download CSV
+  </a>
+{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <form class="filter-bar" method="get" action="{{ url_for('teacher.low_attendance') }}">
+    <label class="form-label mb-0 align-self-center">Required percentage</label>
+    <input class="form-control" type="number" name="minimum" min="1" max="100" value="{{ minimum|int }}">
+    <button class="btn btn-brand" type="submit">Apply</button>
+  </form>
+
+  <h3 class="section-heading">Overall shortage</h3>
+  {% if overall_rows %}
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead><tr><th>Register no.</th><th>Student</th><th>Department</th><th>Attended</th><th>Held</th><th>Attendance</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for row in overall_rows %}
+            <tr>
+              <td><span class="reg-chip">{{ row.student.register_number }}</span></td>
+              <td>{{ row.student.name }}</td>
+              <td>{{ row.student.department }}</td>
+              <td>{{ row.attended }}</td>
+              <td>{{ row.total }}</td>
+              <td style="min-width:160px">
+                <div class="progress" role="progressbar" aria-valuenow="{{ row.percentage }}" aria-valuemin="0" aria-valuemax="100">
+                  <div class="progress-bar bg-danger" style="width: {{ row.percentage }}%"></div>
+                </div>
+                <small>{{ row.percentage }}%</small>
+              </td>
+              <td><span class="badge bg-danger">ATTENDANCE SHORTAGE</span></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="empty-note">Every student is above {{ minimum|int }}%.</p>
+  {% endif %}
+
+  <h3 class="section-heading">Shortage by subject</h3>
+  {% if subject_rows %}
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead><tr><th>Register no.</th><th>Student</th><th>Subject</th><th>Attended</th><th>Held</th><th>%</th></tr></thead>
+        <tbody>
+          {% for row in subject_rows %}
+            <tr>
+              <td><span class="reg-chip">{{ row.student.register_number }}</span></td>
+              <td>{{ row.student.name }}</td>
+              <td>{{ row.subject.code }} — {{ row.subject.name }}</td>
+              <td>{{ row.attended }}</td>
+              <td>{{ row.total }}</td>
+              <td class="text-danger fw-semibold">{{ row.percentage }}%</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="empty-note">No subject-wise shortage.</p>
+  {% endif %}
+</section>
+{% endblock %}

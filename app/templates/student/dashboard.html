@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Welcome, {{ student.name }}{% endblock %}
+{% block page_subtitle %}{{ student.register_number }} &middot; {{ student.department }} &middot; Year {{ student.year }}{% if student.section %} &middot; Section {{ student.section }}{% endif %}{% endblock %}
+
+{% block content %}
+{% if shortage %}
+  <div class="alert alert-danger">
+    <i class="bi bi-exclamation-triangle"></i>
+    <strong>Attendance shortage</strong> in
+    {{ shortage|map(attribute='code')|join(', ') }}. You need at least {{ minimum|int }}% in every subject.
+  </div>
+{% endif %}
+
+<div class="stat-grid">
+  {% set cards = [
+    ('Overall attendance', counts.percentage|string ~ '%', 'bi-pie-chart', 'indigo'),
+    ('Present', counts.PRESENT, 'bi-check2-circle', 'green'),
+    ('Late', counts.LATE, 'bi-alarm', 'amber'),
+    ('Absent', counts.ABSENT, 'bi-x-circle', 'red'),
+    ('Classes held', counts.total, 'bi-calendar3', 'teal')
+  ] %}
+  {% for label, value, icon, tone in cards %}
+    <article class="stat-card tone-{{ tone }}">
+      <span class="stat-icon"><i class="bi {{ icon }}"></i></span>
+      <p class="stat-value">{{ value }}</p>
+      <p class="stat-label">{{ label }}</p>
+    </article>
+  {% endfor %}
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-lg-7">
+    <section class="panel h-100">
+      <header class="panel-head">
+        <h2>Subject-wise attendance</h2>
+        <a class="link-more" href="{{ url_for('student.attendance') }}">All records</a>
+      </header>
+      {% if subjects %}
+        <ul class="subject-list">
+          {% for row in subjects %}
+            <li>
+              <div class="subject-line">
+                <strong>{{ row.name }}</strong>
+                <span class="{{ 'text-danger' if row.percentage < minimum else 'text-success' }}">{{ row.percentage }}%</span>
+              </div>
+              <div class="progress" role="progressbar" aria-valuenow="{{ row.percentage }}" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-bar {{ 'bg-danger' if row.percentage < minimum else 'bg-success' }}"
+                     style="width: {{ row.percentage }}%"></div>
+              </div>
+              <small class="text-muted">
+                {{ row.attended }} of {{ row.total }} classes attended
+                {% if row.percentage < minimum %} &middot; <span class="text-danger">ATTENDANCE SHORTAGE</span>{% endif %}
+              </small>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="empty-note">No attendance recorded for you yet.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="col-lg-5">
+    <section class="panel h-100">
+      <header class="panel-head"><h2>Your attendance split</h2></header>
+      {% if counts.total %}
+        <canvas id="studentSplit" height="220"
+                data-present="{{ counts.PRESENT }}" data-late="{{ counts.LATE }}"
+                data-absent="{{ counts.ABSENT }}" data-review="{{ counts.REVIEW_REQUIRED }}"></canvas>
+      {% else %}
+        <p class="empty-note">The chart appears after your first class.</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+
+<section class="panel mt-3">
+  <header class="panel-head"><h2>Recent classes</h2></header>
+  {% if recent %}
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead><tr><th>Date</th><th>Subject</th><th>First detection</th><th>Presence %</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for record in recent %}
+            <tr>
+              <td>{{ record.session_date.strftime('%d %b %Y') }}</td>
+              <td>{{ record.subject.code }} — {{ record.subject.name }}</td>
+              <td>{{ record.first_detection_time.strftime('%I:%M %p') if record.first_detection_time else '—' }}</td>
+              <td>{{ record.presence_percentage }}%</td>
+              <td>
+                <span class="badge bg-{{ 'success' if record.status == 'PRESENT' else 'warning' if record.status == 'LATE' else 'danger' if record.status == 'ABSENT' else 'secondary' }}">
+                  {{ record.status }}
+                </span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="empty-note">Nothing here yet.</p>
+  {% endif %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>AttendAI.charts.studentSplit();</script>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}My attendance{% endblock %}
+{% block page_title %}My attendance{% endblock %}
+{% block page_subtitle %}{{ records|length }} record{{ '' if records|length == 1 else 's' }}{% endblock %}
+
+{% block content %}
+<section class="panel">
+  <form class="filter-bar" method="get" action="{{ url_for('student.attendance') }}">
+    <input class="form-control" type="date" name="date" value="{{ filters.date }}">
+    <select class="form-select" name="subject_id">
+      <option value="">All subjects</option>
+      {% for subject in subjects %}
+        <option value="{{ subject.id }}" {% if filters.subject_id == subject.id %}selected{% endif %}>
+          {{ subject.code }} — {{ subject.name }}
+        </option>
+      {% endfor %}
+    </select>
+    <select class="form-select" name="status">
+      <option value="">All statuses</option>
+      {% for status in statuses %}
+        <option value="{{ status }}" {% if filters.status == status %}selected{% endif %}>{{ status }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn btn-brand" type="submit">Filter</button>
+    <a class="btn btn-light" href="{{ url_for('student.attendance') }}">Reset</a>
+  </form>
+
+  {% if summary %}
+    <div class="summary-chips">
+      {% for row in summary %}
+        <span class="summary-chip {{ 'danger' if row.percentage < minimum else 'ok' }}">
+          {{ row.code }} <strong>{{ row.percentage }}%</strong>
+        </span>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if records %}
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead><tr><th>Date</th><th>Subject</th><th>First</th><th>Last</th><th>Presence %</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for record in records %}
+            <tr>
+              <td>{{ record.session_date.strftime('%d %b %Y') }}</td>
+              <td>{{ record.subject.code }} — {{ record.subject.name }}</td>
+              <td>{{ record.first_detection_time.strftime('%I:%M %p') if record.first_detection_time else '—' }}</td>
+              <td>{{ record.last_detection_time.strftime('%I:%M %p') if record.last_detection_time else '—' }}</td>
+              <td>{{ record.presence_percentage }}%</td>
+              <td>
+                <span class="badge bg-{{ 'success' if record.status == 'PRESENT' else 'warning' if record.status == 'LATE' else 'danger' if record.status == 'ABSENT' else 'secondary' }}">
+                  {{ record.status }}
+                </span>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="empty-note">No records match these filters.</p>
+  {% endif %}
+</section>
+{% endblock %}

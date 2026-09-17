@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+{% block page_title %}Profile{% endblock %}
+{% block page_subtitle %}Your details as they are stored in AttendAI{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-5">
+    <section class="panel">
+      <div class="profile-head">
+        <span class="profile-avatar">{{ student.name[:1]|upper }}</span>
+        <div>
+          <h2 class="mb-0">{{ student.name }}</h2>
+          <p class="text-muted mb-0">{{ student.register_number }}</p>
+        </div>
+      </div>
+      <ul class="kv-list mt-3">
+        <li><span>Department</span><strong>{{ student.department }}</strong></li>
+        <li><span>Year</span><strong>{{ student.year }}</strong></li>
+        <li><span>Section</span><strong>{{ student.section or '—' }}</strong></li>
+        <li><span>Email</span><strong>{{ student.email or '—' }}</strong></li>
+        <li><span>Username</span><strong>{{ student.username }}</strong></li>
+        <li><span>Face registered</span>
+          <strong class="{{ 'text-success' if student.face_registered else 'text-danger' }}">
+            {{ 'Yes' if student.face_registered else 'No' }}
+          </strong>
+        </li>
+        <li><span>Joined</span><strong>{{ student.created_at.strftime('%d %b %Y') }}</strong></li>
+      </ul>
+    </section>
+  </div>
+
+  <div class="col-lg-7">
+    <section class="panel h-100">
+      <header class="panel-head"><h2>Attendance summary</h2></header>
+      <ul class="kv-list">
+        <li><span>Classes held</span><strong>{{ counts.total }}</strong></li>
+        <li><span>Present</span><strong>{{ counts.PRESENT }}</strong></li>
+        <li><span>Late</span><strong>{{ counts.LATE }}</strong></li>
+        <li><span>Absent</span><strong>{{ counts.ABSENT }}</strong></li>
+        <li><span>Needs review</span><strong>{{ counts.REVIEW_REQUIRED }}</strong></li>
+        <li><span>Overall</span>
+          <strong class="{{ 'text-danger' if counts.percentage < minimum else 'text-success' }}">{{ counts.percentage }}%</strong>
+        </li>
+      </ul>
+      {% if counts.percentage < minimum and counts.total %}
+        <div class="alert alert-danger mt-3 mb-0">
+          Your attendance is below the required {{ minimum|int }}%. Speak to your class teacher.
+        </div>
+      {% endif %}
+      <p class="help-text mt-3 mb-0">
+        Your subjects: {{ student.subjects|map(attribute='code')|join(', ') if student.subjects else 'none assigned yet' }}.
+        Ask your teacher if something here is wrong — students cannot edit their own record.
+      </p>
+    </section>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Face registration{% endblock %}
+{% block page_title %}Face registration{% endblock %}
+{% block page_subtitle %}Capture face samples and train the recognition model{% endblock %}
+
+{% block topbar_actions %}
+  <form method="post" action="{{ url_for('teacher.train_face_model') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-outline-brand" type="submit"><i class="bi bi-cpu"></i> Train face model</button>
+  </form>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-4">
+    <section class="panel">
+      <header class="panel-head"><h2>Choose a student</h2></header>
+      <form method="get" action="{{ url_for('teacher.face_registration') }}" class="mb-3">
+        <select class="form-select" name="student_id" onchange="this.form.submit()">
+          <option value="">Select a student…</option>
+          {% for student in students %}
+            <option value="{{ student.id }}" {% if selected and selected.id == student.id %}selected{% endif %}>
+              {{ student.register_number }} — {{ student.name }}
+              ({{ sample_counts.get(student.id, 0) }} samples)
+            </option>
+          {% endfor %}
+        </select>
+      </form>
+
+      {% if selected %}
+        <div class="student-summary" data-student-id="{{ selected.id }}" data-register="{{ selected.register_number }}">
+          <p class="mb-1"><strong>{{ selected.name }}</strong></p>
+          <p class="text-muted mb-2">{{ selected.register_number }} &middot; {{ selected.department }} &middot; Year {{ selected.year }}</p>
+          <p class="mb-0">
+            Stored samples:
+            <span class="badge bg-{{ 'success' if sample_counts.get(selected.id, 0) else 'secondary' }}">
+              {{ sample_counts.get(selected.id, 0) }}
+            </span>
+          </p>
+        </div>
+      {% else %}
+        <p class="empty-note mb-0">Pick a student to switch the camera on.</p>
+      {% endif %}
+    </section>
+
+    <section class="panel mt-3">
+      <header class="panel-head"><h2>Model status</h2></header>
+      <ul class="kv-list">
+        <li><span>Trained</span><strong class="{{ 'text-success' if model.trained else 'text-danger' }}">{{ 'Yes' if model.trained else 'No' }}</strong></li>
+        <li><span>Students</span><strong>{{ model.students }}</strong></li>
+        <li><span>Samples</span><strong>{{ model.samples }}</strong></li>
+        <li><span>Last trained</span><strong>{{ model.trained_at or '—' }}</strong></li>
+      </ul>
+      <p class="help-text mb-0">
+        The model retrains automatically after every save. Use the button above if you
+        edited the face_data folder by hand.
+      </p>
+    </section>
+  </div>
+
+  <div class="col-lg-8">
+    <section class="panel">
+      <header class="panel-head">
+        <h2>Camera</h2>
+        <span class="text-muted small">Target {{ target_samples }} samples, minimum {{ min_samples }}</span>
+      </header>
+
+      {% if selected %}
+        <div class="camera-wrap">
+          <video id="cameraFeed" autoplay playsinline muted></video>
+          <canvas id="captureCanvas" hidden></canvas>
+          <div class="camera-status" id="cameraStatus">Starting the camera…</div>
+        </div>
+
+        <div class="progress mt-3" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+          <div class="progress-bar bg-success" id="captureProgress" style="width: 0%"></div>
+        </div>
+        <p class="mt-2 mb-3"><span id="captureCount">0</span> / {{ target_samples }} samples captured</p>
+
+        <div class="btn-row">
+          <button class="btn btn-brand" id="captureBtn" type="button"><i class="bi bi-camera"></i> Capture</button>
+          <button class="btn btn-light" id="retakeBtn" type="button"><i class="bi bi-arrow-counterclockwise"></i> Retake</button>
+          <button class="btn btn-success" id="saveFaceBtn" type="button" disabled><i class="bi bi-save"></i> Save face profile</button>
+        </div>
+
+        <div class="thumb-strip" id="thumbStrip"></div>
+
+        <div class="alert alert-info mt-3 mb-0">
+          Ask the student to look straight at the camera, then slightly left, right, up and down
+          between captures. Varied angles make recognition far more reliable.
+        </div>
+      {% else %}
+        <p class="empty-note">Select a student on the left and the camera preview appears here.</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if selected %}
+<script src="{{ url_for('static', filename='js/camera.js') }}"></script>
+<script>
+  AttendAI.faceRegistration.init({
+    studentId: {{ selected.id }},
+    registerNumber: "{{ selected.register_number }}",
+    target: {{ target_samples }},
+    minimum: {{ min_samples }},
+    previewUrl: "{{ url_for('api.face_preview') }}",
+    saveUrl: "{{ url_for('api.face_register') }}"
+  });
+</script>
+{% endif %}
+{% endblock %}

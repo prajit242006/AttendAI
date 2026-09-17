@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit student' if student else 'Add student' }}{% endblock %}
+{% block page_title %}{{ 'Edit student' if student else 'Add student' }}{% endblock %}
+{% block page_subtitle %}{{ student.register_number if student else 'Create the login and the class details' }}{% endblock %}
+
+{% block content %}
+{% set value = student.to_dict() if student else {} %}
+<form method="post" class="row g-3" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="col-lg-8">
+    <section class="panel">
+      <header class="panel-head"><h2>Student details</h2></header>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label" for="name">Full name</label>
+          <input class="form-control" id="name" name="name" required
+                 value="{{ form.name or value.name or '' }}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="register_number">Register number</label>
+          <input class="form-control" id="register_number" name="register_number" required
+                 placeholder="23CS001" value="{{ form.register_number or value.register_number or '' }}">
+          <div class="form-text">Must be unique. Students can log in with it.</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="department">Department</label>
+          <input class="form-control" id="department" name="department" required
+                 placeholder="Computer Science" value="{{ form.department or value.department or '' }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label" for="year">Year</label>
+          <input class="form-control" id="year" name="year" type="number" min="1" max="5" required
+                 value="{{ form.year or value.year or 1 }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label" for="section">Section</label>
+          <input class="form-control" id="section" name="section" placeholder="A"
+                 value="{{ form.section or value.section or '' }}">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="email">Email</label>
+          <input class="form-control" id="email" name="email" type="email"
+                 value="{{ form.email or value.email or '' }}">
+        </div>
+      </div>
+    </section>
+
+    <section class="panel mt-3">
+      <header class="panel-head">
+        <h2>Subjects</h2>
+        <span class="text-muted small">Only enrolled students are marked absent when a session ends</span>
+      </header>
+      {% if subjects %}
+        <div class="check-grid">
+          {% for subject in subjects %}
+            <label class="check-tile">
+              <input type="checkbox" name="subjects" value="{{ subject.id }}"
+                     {% if student and subject in student.subjects %}checked{% endif %}>
+              <span><strong>{{ subject.code }}</strong><small>{{ subject.name }}</small></span>
+            </label>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="empty-note">No subjects yet. <a href="{{ url_for('teacher.subject_new') }}">Add one first.</a></p>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="col-lg-4">
+    <section class="panel">
+      <header class="panel-head"><h2>Login</h2></header>
+      <label class="form-label" for="username">Username</label>
+      <input class="form-control mb-3" id="username" name="username"
+             value="{{ form.username or (student.username if student else '') }}"
+             placeholder="Defaults to the register number">
+
+      <label class="form-label" for="password">Password</label>
+      <input class="form-control" id="password" name="password" type="password"
+             {% if not student %}required{% endif %}
+             placeholder="{{ 'Leave blank to keep the current password' if student else 'At least 6 characters' }}">
+      <div class="form-text">Stored as a Werkzeug hash, never as plain text.</div>
+    </section>
+
+    <div class="form-actions">
+      <button class="btn btn-brand w-100" type="submit">
+        {{ 'Save changes' if student else 'Add student' }}
+      </button>
+      <a class="btn btn-light w-100 mt-2" href="{{ url_for('teacher.students') }}">Cancel</a>
+    </div>
+  </div>
+</form>
+{% endblock %}

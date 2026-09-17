@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Server error{% endblock %}
+{% block page_title %}500 — Server error{% endblock %}
+{% block content %}
+<section class="panel error-panel">
+  <i class="bi bi-exclamation-octagon"></i>
+  <h2>Something went wrong on the server</h2>
+  <p>The action was cancelled and nothing was saved. Check that MySQL is running, then try again.</p>
+  <a class="btn btn-brand" href="{{ url_for('auth.index') }}">Back to my dashboard</a>
+</section>
+{% endblock %}

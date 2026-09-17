@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit subject' if subject else 'Add subject' }}{% endblock %}
+{% block page_title %}{{ 'Edit subject' if subject else 'Add subject' }}{% endblock %}
+{% block page_subtitle %}{{ subject.label if subject else 'Course details and the students who attend it' }}{% endblock %}
+
+{% block content %}
+<form method="post" class="row g-3" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="col-lg-5">
+    <section class="panel">
+      <header class="panel-head"><h2>Subject details</h2></header>
+      <label class="form-label" for="code">Subject code</label>
+      <input class="form-control mb-3" id="code" name="code" required placeholder="CS8391"
+             value="{{ form.code or (subject.code if subject else '') }}">
+
+      <label class="form-label" for="name">Subject name</label>
+      <input class="form-control mb-3" id="name" name="name" required placeholder="Java Programming"
+             value="{{ form.name or (subject.name if subject else '') }}">
+
+      <label class="form-label" for="department">Department</label>
+      <input class="form-control mb-3" id="department" name="department" required placeholder="Computer Science"
+             value="{{ form.department or (subject.department if subject else '') }}">
+
+      <div class="row g-3">
+        <div class="col-6">
+          <label class="form-label" for="year">Year</label>
+          <input class="form-control" id="year" name="year" type="number" min="1" max="5" required
+                 value="{{ form.year or (subject.year if subject else 1) }}">
+        </div>
+        <div class="col-6">
+          <label class="form-label" for="semester">Semester</label>
+          <input class="form-control" id="semester" name="semester" type="number" min="1" max="10" required
+                 value="{{ form.semester or (subject.semester if subject else 1) }}">
+        </div>
+      </div>
+
+      <div class="form-actions mt-3">
+        <button class="btn btn-brand w-100" type="submit">{{ 'Save changes' if subject else 'Add subject' }}</button>
+        <a class="btn btn-light w-100 mt-2" href="{{ url_for('teacher.subjects') }}">Cancel</a>
+      </div>
+    </section>
+  </div>
+
+  <div class="col-lg-7">
+    <section class="panel">
+      <header class="panel-head">
+        <h2>Assign students</h2>
+        <button class="btn btn-sm btn-light" type="button" id="selectAllStudents">Select all</button>
+      </header>
+      {% if students %}
+        <div class="check-grid check-grid-tall">
+          {% for student in students %}
+            <label class="check-tile">
+              <input type="checkbox" name="students" value="{{ student.id }}"
+                     {% if subject and student in subject.students %}checked{% endif %}>
+              <span><strong>{{ student.register_number }}</strong><small>{{ student.name }}</small></span>
+            </label>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="empty-note">No students yet. <a href="{{ url_for('teacher.student_new') }}">Add a student first.</a></p>
+      {% endif %}
+    </section>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  var selectAll = document.getElementById('selectAllStudents');
+  if (selectAll) {
+    selectAll.addEventListener('click', function () {
+      var boxes = document.querySelectorAll('input[name="students"]');
+      var turnOn = Array.prototype.some.call(boxes, function (box) { return !box.checked; });
+      boxes.forEach(function (box) { box.checked = turnOn; });
+      selectAll.textContent = turnOn ? 'Clear all' : 'Select all';
+    });
+  }
+</script>
+{% endblock %}

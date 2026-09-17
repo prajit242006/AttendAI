@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Start attendance{% endblock %}
+{% block page_title %}Start attendance{% endblock %}
+{% block page_subtitle %}Set the rules for this class hour before the camera opens{% endblock %}
+
+{% block content %}
+{% if running %}
+  <div class="alert alert-warning d-flex justify-content-between align-items-center">
+    <span>A session for <strong>{{ running.subject.label }}</strong> is still running.</span>
+    <a class="btn btn-sm btn-brand" href="{{ url_for('attendance.live', session_id=running.id) }}">Resume session</a>
+  </div>
+{% endif %}
+
+{% if not model.trained %}
+  <div class="alert alert-danger">
+    The face model is not trained. Register at least one student's face on the
+    <a href="{{ url_for('teacher.face_registration') }}">face registration</a> page first.
+  </div>
+{% endif %}
+
+<form method="post" class="row g-3" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="col-lg-7">
+    <section class="panel">
+      <header class="panel-head"><h2>Class</h2></header>
+
+      <label class="form-label" for="subject_id">Subject</label>
+      <select class="form-select mb-3" id="subject_id" name="subject_id" required>
+        <option value="">Choose a subject…</option>
+        {% for subject in subjects %}
+          <option value="{{ subject.id }}" {% if form.subject_id == subject.id|string %}selected{% endif %}>
+            {{ subject.code }} — {{ subject.name }} ({{ subject.students|length }} students)
+          </option>
+        {% endfor %}
+      </select>
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label" for="session_date">Date</label>
+          <input class="form-control" id="session_date" name="session_date" type="date"
+                 value="{{ form.session_date or today }}" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="class_start_time">Class start time</label>
+          <input class="form-control" id="class_start_time" name="class_start_time" type="time"
+                 value="{{ form.class_start_time or now_time }}" required>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="col-lg-5">
+    <section class="panel">
+      <header class="panel-head"><h2>Rules</h2></header>
+
+      <label class="form-label" for="late_threshold">Late after (minutes)</label>
+      <input class="form-control mb-3" id="late_threshold" name="late_threshold" type="number" min="0" max="240"
+             value="{{ form.late_threshold or defaults.late }}">
+
+      <label class="form-label" for="presence_threshold">Presence threshold (%)</label>
+      <input class="form-control mb-3" id="presence_threshold" name="presence_threshold" type="number" min="0" max="100" step="1"
+             value="{{ form.presence_threshold or defaults.presence }}">
+
+      <label class="form-label" for="check_interval">Presence check every (seconds)</label>
+      <input class="form-control mb-3" id="check_interval" name="check_interval" type="number" min="2" max="300"
+             value="{{ form.check_interval or defaults.interval }}">
+
+      <label class="form-label" for="recognition_threshold">Recognition threshold (LBPH distance)</label>
+      <input class="form-control" id="recognition_threshold" name="recognition_threshold" type="number" min="10" max="200" step="1"
+             value="{{ form.recognition_threshold or defaults.recognition }}">
+      <div class="form-text">Lower is stricter. 70 works well for most webcams.</div>
+
+      <div class="form-actions mt-3">
+        <button class="btn btn-brand w-100 py-2" type="submit"><i class="bi bi-play-circle"></i> Start attendance</button>
+      </div>
+    </section>
+  </div>
+</form>
+
+<section class="panel mt-3">
+  <header class="panel-head"><h2>What happens next</h2></header>
+  <ol class="flow-list">
+    <li>The webcam opens and frames are sent to the server every few seconds.</li>
+    <li>OpenCV detects the face and LBPH predicts which student it belongs to.</li>
+    <li>A head-movement challenge confirms a live person is in front of the camera.</li>
+    <li>Attendance is marked once. Later sightings only update the presence percentage.</li>
+    <li>When you end the session, everyone enrolled who was never seen is marked absent.</li>
+  </ol>
+</section>
+{% endblock %}

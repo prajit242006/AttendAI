@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}Today at a glance &mdash; {{ now.strftime('%d %B %Y') }}{% endblock %}
+
+{% block topbar_actions %}
+  <a class="btn btn-brand" href="{{ url_for('attendance.start') }}">
+    <i class="bi bi-camera-video"></i> Start attendance
+  </a>
+{% endblock %}
+
+{% block content %}
+<div class="stat-grid">
+  {% set cards = [
+    ('Total students', data.total_students, 'bi-people', 'indigo'),
+    ('Present today', data.present_today, 'bi-check2-circle', 'green'),
+    ('Absent today', data.absent_today, 'bi-x-circle', 'red'),
+    ('Late today', data.late_today, 'bi-alarm', 'amber'),
+    ('Below ' ~ MIN_ATTENDANCE_PERCENT|int ~ '%', data.below_minimum, 'bi-exclamation-triangle', 'red'),
+    ('Subjects', data.total_subjects, 'bi-journal-bookmark', 'teal')
+  ] %}
+  {% for label, value, icon, tone in cards %}
+    <article class="stat-card tone-{{ tone }}">
+      <span class="stat-icon"><i class="bi {{ icon }}"></i></span>
+      <p class="stat-value">{{ value }}</p>
+      <p class="stat-label">{{ label }}</p>
+    </article>
+  {% endfor %}
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-lg-7">
+    <section class="panel h-100">
+      <header class="panel-head">
+        <h2>Attendance over the last 7 days</h2>
+        <span class="text-muted small">Counted from attendance records</span>
+      </header>
+      <canvas id="trendChart" height="150"
+              data-labels='{{ data.trend.labels|tojson }}'
+              data-present='{{ data.trend.present|tojson }}'
+              data-late='{{ data.trend.late|tojson }}'
+              data-absent='{{ data.trend.absent|tojson }}'></canvas>
+    </section>
+  </div>
+
+  <div class="col-lg-5">
+    <section class="panel h-100">
+      <header class="panel-head">
+        <h2>Attendance by subject</h2>
+        <span class="text-muted small">Overall {{ data.overall_percentage }}%</span>
+      </header>
+      {% if data.subject_wise.labels %}
+        <canvas id="subjectChart" height="200"
+                data-labels='{{ data.subject_wise.labels|tojson }}'
+                data-values='{{ data.subject_wise["values"]|tojson }}'></canvas>
+      {% else %}
+        <p class="empty-note">Add a subject and run one session to see this chart.</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+
+<div class="row g-3 mt-1">
+  <div class="col-lg-7">
+    <section class="panel h-100">
+      <header class="panel-head">
+        <h2>Recent sessions</h2>
+        <a class="link-more" href="{{ url_for('teacher.attendance_history') }}">All history</a>
+      </header>
+      {% if data.recent_sessions %}
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead><tr><th>Subject</th><th>Date</th><th>Started</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+            {% for session in data.recent_sessions %}
+              <tr>
+                <td><strong>{{ session.subject.code }}</strong><br><small class="text-muted">{{ session.subject.name }}</small></td>
+                <td>{{ session.session_date.strftime('%d %b %Y') }}</td>
+                <td>{{ session.class_start_time.strftime('%I:%M %p') }}</td>
+                <td>
+                  <span class="badge bg-{{ 'success' if session.status == 'ACTIVE' else 'secondary' }}">
+                    {{ session.status }}
+                  </span>
+                </td>
+                <td class="text-end">
+                  {% if session.status == 'ACTIVE' %}
+                    <a class="btn btn-sm btn-outline-brand" href="{{ url_for('attendance.live', session_id=session.id) }}">Resume</a>
+                  {% else %}
+                    <a class="btn btn-sm btn-light" href="{{ url_for('teacher.attendance_history', date=session.session_date.strftime('%Y-%m-%d'), subject_id=session.subject_id) }}">View</a>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="empty-note">No sessions yet. Start one from the button above.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <div class="col-lg-5">
+    <section class="panel h-100">
+      <header class="panel-head">
+        <h2>Attendance shortage</h2>
+        <a class="link-more" href="{{ url_for('teacher.low_attendance') }}">Full list</a>
+      </header>
+      {% if data.low_students %}
+        <ul class="shortage-list">
+          {% for row in data.low_students %}
+            <li>
+              <div>
+                <strong>{{ row.student.name }}</strong>
+                <small>{{ row.student.register_number }} &middot; {{ row.attended }}/{{ row.total }} classes</small>
+              </div>
+              <div class="shortage-meter">
+                <div class="progress" role="progressbar" aria-valuenow="{{ row.percentage }}" aria-valuemin="0" aria-valuemax="100">
+                  <div class="progress-bar bg-danger" style="width: {{ row.percentage }}%"></div>
+                </div>
+                <span>{{ row.percentage }}%</span>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="empty-note">Everybody is above {{ MIN_ATTENDANCE_PERCENT|int }}%.</p>
+      {% endif %}
+    </section>
+  </div>
+</div>
+
+<section class="panel mt-3">
+  <header class="panel-head">
+    <h2>Face model</h2>
+    <a class="link-more" href="{{ url_for('teacher.face_registration') }}">Manage faces</a>
+  </header>
+  <div class="model-strip">
+    <div>
+      <span class="model-label">Status</span>
+      <strong class="{{ 'text-success' if data.model.trained else 'text-danger' }}">
+        {{ 'Trained' if data.model.trained else 'Not trained yet' }}
+      </strong>
+    </div>
+    <div><span class="model-label">Students in model</span><strong>{{ data.model.students }}</strong></div>
+    <div><span class="model-label">Face samples</span><strong>{{ data.model.samples }}</strong></div>
+    <div><span class="model-label">Faces registered</span><strong>{{ data.faces_registered }} / {{ data.total_students }}</strong></div>
+    <div><span class="model-label">Last trained</span><strong>{{ data.model.trained_at or '—' }}</strong></div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>AttendAI.charts.dashboard();</script>
+{% endblock %}

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Not allowed{% endblock %}
+{% block page_title %}403 — Not allowed{% endblock %}
+{% block content %}
+<section class="panel error-panel">
+  <i class="bi bi-shield-lock"></i>
+  <h2>This page is not for your account</h2>
+  <p>{{ reason or 'Teacher pages are restricted to teacher accounts, and students can only open their own attendance.' }}</p>
+  <a class="btn btn-brand" href="{{ url_for('auth.index') }}">Back to my dashboard</a>
+</section>
+{% endblock %}

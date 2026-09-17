@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Live attendance{% endblock %}
+{% block page_title %}Live attendance{% endblock %}
+{% block page_subtitle %}{{ session.subject.code }} — {{ session.subject.name }}{% endblock %}
+
+{% block topbar_actions %}
+  {% if session.is_active %}
+    <button class="btn btn-danger" type="button" data-bs-toggle="modal" data-bs-target="#endSessionModal">
+      <i class="bi bi-stop-circle"></i> End session
+    </button>
+  {% else %}
+    <span class="badge bg-secondary px-3 py-2">Session ended</span>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="session-strip">
+  <div><span>Subject</span><strong>{{ session.subject.label }}</strong></div>
+  <div><span>Class start</span><strong>{{ session.class_start_time.strftime('%I:%M %p') }}</strong></div>
+  <div><span>Late after</span><strong>{{ session.late_threshold_minutes }} min</strong></div>
+  <div><span>Presence needed</span><strong>{{ session.presence_threshold }}%</strong></div>
+  <div><span>Enrolled</span><strong>{{ enrolled }}</strong></div>
+  <div><span>Now</span><strong id="clock">--:--:--</strong></div>
+</div>
+
+{% if not model_ready %}
+  <div class="alert alert-danger mt-3">
+    The face model has not been trained, so nobody can be recognised.
+    Train it on the <a href="{{ url_for('teacher.face_registration') }}">face registration</a> page.
+  </div>
+{% endif %}
+
+<div class="row g-3 mt-1">
+  <div class="col-lg-6">
+    <section class="panel">
+      <header class="panel-head">
+        <h2>Camera</h2>
+        <span class="badge bg-{{ 'success' if session.is_active else 'secondary' }}" id="sessionBadge">
+          {{ session.status }}
+        </span>
+      </header>
+
+      <div class="camera-wrap">
+        <video id="cameraFeed" autoplay playsinline muted></video>
+        <canvas id="captureCanvas" hidden></canvas>
+        <div class="camera-status" id="cameraStatus">Starting the camera…</div>
+      </div>
+
+      <div class="btn-row mt-3">
+        <button class="btn btn-brand" id="scanToggle" type="button"><i class="bi bi-pause-circle"></i> Pause scanning</button>
+        <span class="text-muted small align-self-center" id="tickInfo">
+          Presence check every {{ session.check_interval_seconds }}s
+        </span>
+      </div>
+    </section>
+  </div>
+
+  <div class="col-lg-6">
+    <section class="panel h-100">
+      <header class="panel-head"><h2>Recognition</h2></header>
+
+      <div class="recognition-card" id="recognitionCard">
+        <p class="recognition-name" id="recogName">Waiting for a face…</p>
+        <p class="recognition-reg" id="recogReg">&nbsp;</p>
+        <div class="recognition-flags">
+          <span class="flag" id="flagFace">FACE</span>
+          <span class="flag" id="flagLive">LIVENESS</span>
+          <span class="flag" id="flagMark">ATTENDANCE</span>
+        </div>
+        <p class="recognition-message" id="recogMessage">Point the camera at a student.</p>
+        <p class="recognition-meta" id="recogMeta">&nbsp;</p>
+      </div>
+
+      <div class="challenge-box d-none" id="challengeBox">
+        <i class="bi bi-arrow-left-right"></i>
+        <div>
+          <strong id="challengeText">TURN HEAD LEFT</strong>
+          <small>Liveness check — move as shown so the camera can see you are real.</small>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<section class="panel mt-3">
+  <header class="panel-head">
+    <h2>Marked so far</h2>
+    <span class="text-muted small">Presence checks: <strong id="totalChecks">{{ session.total_checks }}</strong></span>
+  </header>
+  <div class="table-responsive">
+    <table class="table align-middle mb-0" id="liveTable">
+      <thead>
+        <tr><th>Register no.</th><th>Student</th><th>First detection</th><th>Liveness</th><th>Presence %</th><th>Status</th></tr>
+      </thead>
+      <tbody id="liveTableBody">
+        {% for row in rows %}
+          <tr>
+            <td><span class="reg-chip">{{ row.register_number }}</span></td>
+            <td>{{ row.name }}</td>
+            <td>{{ row.first_detection }}</td>
+            <td>{{ row.liveness }}</td>
+            <td>{{ row.presence }}%</td>
+            <td><span class="badge bg-success">{{ row.status }}</span></td>
+          </tr>
+        {% else %}
+          <tr id="liveEmptyRow"><td colspan="6" class="empty-note">Nobody recognised yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<div class="modal fade" id="endSessionModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">End this session?</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        Ending the session finalises every presence percentage and marks the
+        {{ enrolled }} enrolled students who were never recognised as absent.
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" data-bs-dismiss="modal" type="button">Keep scanning</button>
+        <form method="post" action="{{ url_for('attendance.end', session_id=session.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-danger" type="submit">End session</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/camera.js') }}"></script>
+<script src="{{ url_for('static', filename='js/attendance.js') }}"></script>
+<script>
+  AttendAI.liveAttendance.init({
+    sessionId: {{ session.id }},
+    active: {{ 'true' if session.is_active else 'false' }},
+    intervalMs: {{ (session.check_interval_seconds * 1000) // 4 if session.check_interval_seconds else 2500 }},
+    recognizeUrl: "{{ url_for('api.attendance_recognize') }}",
+    recordsUrl: "{{ url_for('api.attendance_records', session_id=session.id) }}"
+  });
+</script>
+{% endblock %}

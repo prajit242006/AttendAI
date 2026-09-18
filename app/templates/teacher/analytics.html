@@ -35,10 +35,10 @@
   <div class="col-lg-5">
     <section class="panel h-100">
       <header class="panel-head"><h2>Status split</h2></header>
-      {% if status_distribution.values|sum %}
+      {% if status_distribution["values"]|sum %}
         <canvas id="statusChart" height="220"
                 data-labels='{{ status_distribution.labels|tojson }}'
-                data-values='{{ status_distribution.values|tojson }}'></canvas>
+                data-values='{{ status_distribution["values"]|tojson }}'></canvas>
       {% else %}
         <p class="empty-note">No attendance recorded yet.</p>
       {% endif %}
@@ -53,7 +53,7 @@
       {% if subject_wise.labels %}
         <canvas id="subjectChart" height="200"
                 data-labels='{{ subject_wise.labels|tojson }}'
-                data-values='{{ subject_wise.values|tojson }}'></canvas>
+                data-values='{{ subject_wise["values"]|tojson }}'></canvas>
         <div class="table-responsive mt-3">
           <table class="table table-sm mb-0">
             <thead><tr><th>Code</th><th>Subject</th><th>Attended</th><th>Held</th><th>%</th></tr></thead>
@@ -119,3 +119,4 @@
 <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
 <script>AttendAI.charts.analytics();</script>
 {% endblock %}
+

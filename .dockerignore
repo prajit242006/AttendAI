@@ -1,0 +1,17 @@
+.git
+.env
+.env.*
+**/venv
+**/.venv
+**/__pycache__
+**/*.pyc
+**/node_modules
+face_data
+models_data
+database
+tests
+*.zip
+*.db
+*.sqlite
+*.sqlite3
+h origin main

@@ -1,4 +1,4 @@
-attendai-production-d800.up.railway.app
+🚀 **Live Website:** [Click here to open AttendAI](https://attendai-production-d800.up.railway.app)
 # AttendAI — AI-Based Smart Student Attendance Management System
 
 **Smart. Secure. Automated Attendance.**
@@ -21,7 +21,7 @@ tracking, analytics and CSV reports.
 | Database | MySQL via Flask-SQLAlchemy and PyMySQL |
 | Frontend | Bootstrap 5, Bootstrap Icons, Chart.js, vanilla JS |
 | Security | Flask-Login sessions, Werkzeug password hashing, CSRF protection, role checks |
-| Runs at | http://localhost:5000 |
+| Runs at | [Live Website](https://attendai-production-d800.up.railway.app) |
 | Default teacher | `admin` / `Admin@123` |
 
 Two roles exist. A **teacher** manages students, subjects, faces, sessions and
